@@ -1,11 +1,25 @@
-<script setup lang="ts"></script>
-
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <v-responsive class="border rounded">
+    <v-app>
+      <v-app-bar title="App bar"></v-app-bar>
+
+      <v-navigation-drawer>
+        <v-list>
+          <v-list-item title="Navigation drawer"></v-list-item>
+        </v-list>
+      </v-navigation-drawer>
+
+      <v-main>
+        <v-container>
+          <country-list />
+        </v-container>
+      </v-main>
+    </v-app>
+  </v-responsive>
 </template>
+
+<script setup lang="ts">
+import CountryList from '@/components/admin/CountryList.vue'
+</script>
 
 <style scoped></style>
