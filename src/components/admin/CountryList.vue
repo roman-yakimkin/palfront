@@ -6,15 +6,41 @@
       <v-btn color="primary" @click="openCreateDialog">Добавить</v-btn>
     </v-card-title>
 
-    <v-data-table :headers="headers" :items="countries" :loading="loading" hide-default-footer>
-      <template v-slot:item.has_regions="{ item }">
-        <v-icon v-if="item.has_regions" icon="mdi-check-bold" />
-      </template>
-      <template v-slot:item.actions="{ item }">
-        <v-btn icon="mdi-pencil" @click="openEditDialog(item)" />
-        <v-btn icon="mdi-delete" @click="confirmDelete(item)" />
-      </template>
-    </v-data-table>
+    <v-table>
+      <thead>
+        <tr>
+          <th>Код</th>
+          <th>Название</th>
+          <th>Регионы</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <draggable
+        v-model="countries"
+        item-key="id"
+        tag="tbody"
+        handle=".drag-handle"
+        :animation="150"
+        @end="onDragEnd"
+      >
+        <template #item="{ element }">
+          <tr>
+            <td>
+              <v-icon size="small" class="drag-handle mr-2">mdi-drag</v-icon>
+              {{ element.id }}
+            </td>
+            <td>{{ element.name }}</td>
+            <td>
+              <v-icon v-if="element.has_regions" icon="mdi-check-bold" />
+            </td>
+            <td>
+              <v-btn icon="mdi-pencil" @click="openEditDialog(element)" />
+              <v-btn icon="mdi-delete" @click="confirmDelete(element)" />
+            </td>
+          </tr>
+        </template>
+      </draggable>
+    </v-table>
 
     <!-- Dialog for Create/Edit -->
     <v-dialog v-model="dialog" max-width="500">
@@ -55,21 +81,24 @@
     >
       {{ errorMessage }}
     </v-alert>
+
+    <v-snackbar
+      v-model="snackbar"
+      :timeout="2000"
+      color="success"
+      location="top"
+      class="centered-snackbar"
+    >
+      {{ notifyMessage }}
+    </v-snackbar>
   </v-card>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import draggable from 'vuedraggable'
 import axios from 'axios'
 import { API_BASE_URL } from '../../config'
-
-const headers = [
-  { title: 'Код', key: 'id' },
-  { title: 'Название', key: 'name' },
-  { title: 'Регионы', key: 'has_regions' },
-  { title: 'Действия', key: 'actions', sortable: false },
-]
-
 const countries = ref([])
 const loading = ref(false)
 const dialog = ref(false)
@@ -77,16 +106,19 @@ const deleteDialog = ref(false)
 const editing = ref(false)
 const deletingItem = ref(null)
 const errorMessage = ref('')
+const snackbar = ref(false)
+const notifyMessage = ref('')
 
 const form = ref({
   id: '',
   name: '',
   has_regions: false,
+  weight: 0,
 })
 
 const openCreateDialog = () => {
   editing.value = false
-  form.value = { id: '', name: '', has_regions: false }
+  form.value = { id: '', name: '', has_regions: false, weight: 0 }
   dialog.value = true
 }
 
@@ -98,7 +130,12 @@ const openEditDialog = (item) => {
 
 const save = async () => {
   loading.value = true
-  const payload = { id: form.value.id, name: form.value.name, has_regions: form.value.has_regions }
+  const payload = {
+    id: form.value.id,
+    name: form.value.name,
+    has_regions: form.value.has_regions,
+    weight: form.value.weight,
+  }
 
   try {
     if (editing.value) {
@@ -140,14 +177,30 @@ const loadCountries = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/countries`)
     countries.value = response.data.items
-
-    console.log(countries.value)
     clearError()
   } catch (err) {
     setError(err)
     countries.value = []
   } finally {
     loading.value = false
+  }
+}
+
+const onDragEnd = () => {
+  orderCountries()
+}
+
+const orderCountries = async () => {
+  try {
+    const order = countries.value.map((item) => item.id)
+    const response = await axios.post(`${API_BASE_URL}/countries/order`, { order })
+    await loadCountries()
+
+    clearError()
+    notifyMessage.value = response.data.message
+    snackbar.value = true
+  } catch (err) {
+    setError(err)
   }
 }
 
@@ -177,4 +230,11 @@ const clearError = () => {
 onMounted(loadCountries)
 </script>
 
-<style scoped></style>
+<style scoped>
+.drag-handle {
+  cursor: move;
+}
+.centered-snackbar :deep(.v-snackbar__content) {
+  text-align: center;
+}
+</style>
