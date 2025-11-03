@@ -98,7 +98,8 @@
 import { ref, onMounted } from 'vue'
 import draggable from 'vuedraggable'
 import axios from 'axios'
-import { API_BASE_URL } from '../../config'
+import { API_BASE_URL } from '@/config.ts'
+
 const countries = ref([])
 const loading = ref(false)
 const dialog = ref(false)
@@ -211,8 +212,7 @@ const setError = (err) => {
       errorMessage.value = `Ошибка ${err.response.status}: ${err.response.data?.message || err.response.statusText || 'Неизвестная ошибка'}`
     } else if (err.request) {
       // Запрос был сделан, но ответа нет (например, CORS, таймаут)
-      errorMessage.value =
-        'Нет ответа от сервера. Проверьте работу сервера на http://localhost:8080?'
+      errorMessage.value = `Нет ответа от сервера. Проверьте работу сервера на ${API_BASE_URL}`
     } else {
       // Ошибка при настройке запроса
       errorMessage.value = 'Ошибка при настройке запроса: ' + err.message
